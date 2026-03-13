@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  ssl-monitor:
+    build: .
+    container_name: ssl-monitor
+    ports:
+      - "5000:5000"
+    environment:
+      - SSL_MONITOR_DB=/data/ssl_monitor.db
+    volumes:
+      - ssl_data:/data
+    restart: unless-stopped
+
+volumes:
+  ssl_data:

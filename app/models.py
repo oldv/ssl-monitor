@@ -4,7 +4,8 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "ssl_monitor.db")
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, "ssl_monitor.db")
+DB_PATH = os.environ.get("SSL_MONITOR_DB", DEFAULT_DB_PATH)
 
 
 def _connect():
@@ -15,6 +16,10 @@ def _connect():
 
 
 def init_db():
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+
     with _connect() as conn:
         conn.executescript(
             """

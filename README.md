@@ -27,6 +27,14 @@ python app/app.py
 
 访问 `http://localhost:5000`。
 
+## Docker 部署
+
+```
+docker compose up --build
+```
+
+访问 `http://localhost:5000`。
+
 ## 说明
 
 - 默认每天 02:00 自动检查全部域名。
