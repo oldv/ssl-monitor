@@ -38,4 +38,4 @@ docker compose up --build
 ## 说明
 
 - 默认每天 02:00 自动检查全部域名。
-- 如果使用多进程部署（如 gunicorn 多 worker），会启动多个调度器；建议先使用单 worker。
+- Docker 默认使用 Gunicorn 单 worker 启动，避免定时任务重复执行。
