@@ -2,9 +2,9 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
-from cert_checker import check_certificate
-from models import add_domain, delete_domain, get_domains_with_latest_check, init_db
-from scheduler import check_domain, check_all_domains, get_next_run_time, start_scheduler
+from app.cert_checker import check_certificate
+from app.models import add_domain, delete_domain, get_domains_with_latest_check, init_db
+from app.scheduler import check_domain, check_all_domains, get_next_run_time, start_scheduler
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 

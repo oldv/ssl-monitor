@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from cert_checker import check_certificate
-from models import get_all_domains, save_check_result
+from app.cert_checker import check_certificate
+from app.models import get_all_domains, save_check_result
 
 scheduler = BackgroundScheduler()
 
