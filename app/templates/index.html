@@ -123,6 +123,30 @@
       </div>
     </main>
 
+    <div
+      class="modal fade"
+      id="check-progress"
+      tabindex="-1"
+      aria-hidden="true"
+      aria-labelledby="check-progress-title"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="check-progress-title">正在检查证书</h5>
+          </div>
+          <div class="modal-body d-flex align-items-center gap-3">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+            <div>
+              <div class="fw-semibold">请稍候</div>
+              <div class="text-secondary small" id="check-progress-text">正在请求证书信息…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
   </body>
 </html>
