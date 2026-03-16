@@ -1,15 +1,13 @@
 import logging
-import os
 from datetime import datetime, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.cert_checker import check_certificate
-from app.models import get_all_domains, get_dingtalk_config, save_check_result
+from app.models import DEFAULT_ALERT_DAYS, get_all_domains, get_dingtalk_config, save_check_result
 from app.send_custom_robot_group_message import send_custom_robot_group_message
 
 scheduler = BackgroundScheduler()
-ALERT_DAYS = int(os.environ.get("SSL_MONITOR_ALERT_DAYS", "7"))
 
 
 def _format_alert_message(domain: str, result: dict):
@@ -41,12 +39,17 @@ def _maybe_send_alert(domain: str, result: dict):
     if result.get("status") not in {"valid", "expired"}:
         return
 
-    days_left = result.get("days_left")
-    if days_left is None or days_left > ALERT_DAYS:
-        return
-
     config = get_dingtalk_config()
     if not config:
+        return
+
+    try:
+        alert_days = int(config.get("alert_days", DEFAULT_ALERT_DAYS))
+    except (TypeError, ValueError):
+        alert_days = DEFAULT_ALERT_DAYS
+
+    days_left = result.get("days_left")
+    if days_left is None or days_left > alert_days:
         return
 
     msg = _format_alert_message(domain, result)

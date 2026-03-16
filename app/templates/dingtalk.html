@@ -55,6 +55,19 @@
               <div class="form-text">用于机器人加签，建议妥善保管。</div>
             </div>
             <div class="col-12">
+              <label for="alert-days" class="form-label">告警天数</label>
+              <input
+                type="number"
+                class="form-control"
+                id="alert-days"
+                min="1"
+                max="365"
+                value="{{ config.alert_days if config and config.alert_days is not none else alert_days_default }}"
+                required
+              />
+              <div class="form-text">当证书剩余天数 ≤ 该值时发送告警。</div>
+            </div>
+            <div class="col-12">
               <label for="test-msg" class="form-label">测试消息</label>
               <input
                 type="text"

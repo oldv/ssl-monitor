@@ -22,8 +22,14 @@ document.getElementById("dingtalk-form").addEventListener("submit", async (event
   event.preventDefault();
   const accessToken = document.getElementById("access-token").value.trim();
   const secret = document.getElementById("secret").value.trim();
+  const alertDaysRaw = document.getElementById("alert-days").value.trim();
   if (!accessToken || !secret) {
     showMsg("access_token 与 secret 均不能为空", "warning");
+    return;
+  }
+  const alertDays = Number.parseInt(alertDaysRaw, 10);
+  if (!Number.isInteger(alertDays) || alertDays < 1 || alertDays > 365) {
+    showMsg("告警天数需为 1-365 的整数", "warning");
     return;
   }
 
@@ -31,6 +37,7 @@ document.getElementById("dingtalk-form").addEventListener("submit", async (event
     await postJson("/api/dingtalk", {
       access_token: accessToken,
       secret,
+      alert_days: alertDays,
     });
     showMsg("保存成功", "success");
   } catch (err) {

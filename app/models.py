@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DB_PATH = os.path.join(BASE_DIR, "ssl_monitor.db")
 DB_PATH = os.environ.get("SSL_MONITOR_DB", DEFAULT_DB_PATH)
+DEFAULT_ALERT_DAYS = 7
 
 
 def _connect():
@@ -45,6 +46,7 @@ def init_db():
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 access_token TEXT NOT NULL,
                 secret TEXT NOT NULL,
+                alert_days INTEGER NOT NULL DEFAULT 7,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -53,6 +55,16 @@ def init_db():
                 ON checks(domain_id, check_time DESC);
             """
         )
+
+        _ensure_dingtalk_schema(conn)
+
+
+def _ensure_dingtalk_schema(conn: sqlite3.Connection):
+    columns = conn.execute("PRAGMA table_info(dingtalk_config)").fetchall()
+    col_names = {row[1] for row in columns}
+    if "alert_days" not in col_names:
+        conn.execute("ALTER TABLE dingtalk_config ADD COLUMN alert_days INTEGER NOT NULL DEFAULT 7")
+        conn.execute("UPDATE dingtalk_config SET alert_days = 7 WHERE alert_days IS NULL")
 
 
 def normalize_domain(value: str) -> str:
@@ -143,22 +155,32 @@ def save_check_result(domain_id: int, result: dict):
 def get_dingtalk_config():
     with _connect() as conn:
         row = conn.execute(
-            "SELECT access_token, secret, created_at, updated_at FROM dingtalk_config WHERE id = 1"
+            """
+            SELECT access_token, secret, alert_days, created_at, updated_at
+            FROM dingtalk_config
+            WHERE id = 1
+            """
         ).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        data = dict(row)
+        if data.get("alert_days") is None:
+            data["alert_days"] = DEFAULT_ALERT_DAYS
+        return data
 
 
-def upsert_dingtalk_config(access_token: str, secret: str):
+def upsert_dingtalk_config(access_token: str, secret: str, alert_days: int = DEFAULT_ALERT_DAYS):
     now = datetime.utcnow().isoformat(sep=" ", timespec="seconds")
     with _connect() as conn:
         conn.execute(
             """
-            INSERT INTO dingtalk_config (id, access_token, secret, created_at, updated_at)
-            VALUES (1, ?, ?, ?, ?)
+            INSERT INTO dingtalk_config (id, access_token, secret, alert_days, created_at, updated_at)
+            VALUES (1, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 access_token = excluded.access_token,
                 secret = excluded.secret,
+                alert_days = excluded.alert_days,
                 updated_at = excluded.updated_at
             """,
-            (access_token, secret, now, now),
+            (access_token, secret, alert_days, now, now),
         )

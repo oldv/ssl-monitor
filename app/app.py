@@ -6,6 +6,7 @@ from app.cert_checker import check_certificate
 from app.models import (
     add_domain,
     delete_domain,
+    DEFAULT_ALERT_DAYS,
     get_dingtalk_config,
     get_domains_with_latest_check,
     init_db,
@@ -33,7 +34,11 @@ def index():
 @app.route("/dingtalk")
 def dingtalk_settings():
     config = get_dingtalk_config()
-    return render_template("dingtalk.html", config=config)
+    return render_template(
+        "dingtalk.html",
+        config=config,
+        alert_days_default=DEFAULT_ALERT_DAYS,
+    )
 
 
 @app.route("/api/domains", methods=["POST"])
@@ -98,10 +103,18 @@ def api_save_dingtalk():
     data = request.get_json(force=True, silent=True) or {}
     access_token = (data.get("access_token") or "").strip()
     secret = (data.get("secret") or "").strip()
+    alert_days_raw = data.get("alert_days", DEFAULT_ALERT_DAYS)
     if not access_token or not secret:
         return jsonify({"success": False, "error": "access_token 与 secret 均不能为空"}), 400
 
-    upsert_dingtalk_config(access_token, secret)
+    try:
+        alert_days = int(alert_days_raw)
+        if alert_days < 1 or alert_days > 365:
+            raise ValueError("invalid alert_days")
+    except Exception:
+        return jsonify({"success": False, "error": "告警天数需为 1-365 的整数"}), 400
+
+    upsert_dingtalk_config(access_token, secret, alert_days=alert_days)
     return jsonify({"success": True})
 
 
