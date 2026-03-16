@@ -37,3 +37,14 @@ document.getElementById("dingtalk-form").addEventListener("submit", async (event
     showMsg(err.message, "danger");
   }
 });
+
+document.getElementById("test-send").addEventListener("click", async () => {
+  const msgInput = document.getElementById("test-msg");
+  const msg = (msgInput.value || "SSL Monitor 测试消息").trim();
+  try {
+    await postJson("/api/dingtalk/test", { msg });
+    showMsg("测试消息已发送", "success");
+  } catch (err) {
+    showMsg(err.message, "danger");
+  }
+});

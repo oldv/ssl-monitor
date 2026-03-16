@@ -54,8 +54,21 @@
               />
               <div class="form-text">用于机器人加签，建议妥善保管。</div>
             </div>
-            <div class="col-12 d-grid">
+            <div class="col-12">
+              <label for="test-msg" class="form-label">测试消息</label>
+              <input
+                type="text"
+                class="form-control"
+                id="test-msg"
+                placeholder="例如：SSL Monitor 测试消息"
+                value="SSL Monitor 测试消息"
+              />
+            </div>
+            <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">保存配置</button>
+              <button type="button" class="btn btn-outline-primary" id="test-send">
+                发送测试消息
+              </button>
             </div>
           </form>
           <div id="form-msg" class="alert mt-3 d-none" role="alert"></div>

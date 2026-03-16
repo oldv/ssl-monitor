@@ -75,6 +75,24 @@ def api_check_all():
     return jsonify({"success": True})
 
 
+@app.route("/api/dingtalk/test", methods=["POST"])
+def api_test_dingtalk():
+    data = request.get_json(force=True, silent=True) or {}
+    msg = (data.get("msg") or "SSL Monitor 测试消息").strip()
+    config = get_dingtalk_config()
+    if not config:
+        return jsonify({"success": False, "error": "请先保存 access_token 与 secret"}), 400
+
+    try:
+        from app.send_custom_robot_group_message import send_custom_robot_group_message
+
+        send_custom_robot_group_message(config["access_token"], config["secret"], msg)
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+    return jsonify({"success": True})
+
+
 @app.route("/api/dingtalk", methods=["POST"])
 def api_save_dingtalk():
     data = request.get_json(force=True, silent=True) or {}
