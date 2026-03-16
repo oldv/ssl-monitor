@@ -3,7 +3,14 @@ import os
 from flask import Flask, jsonify, render_template, request
 
 from app.cert_checker import check_certificate
-from app.models import add_domain, delete_domain, get_domains_with_latest_check, init_db
+from app.models import (
+    add_domain,
+    delete_domain,
+    get_dingtalk_config,
+    get_domains_with_latest_check,
+    init_db,
+    upsert_dingtalk_config,
+)
 from app.scheduler import check_domain, check_all_domains, get_next_run_time, start_scheduler
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -21,6 +28,12 @@ def index():
     domains = get_domains_with_latest_check()
     next_run = get_next_run_time()
     return render_template("index.html", domains=domains, next_run=next_run)
+
+
+@app.route("/dingtalk")
+def dingtalk_settings():
+    config = get_dingtalk_config()
+    return render_template("dingtalk.html", config=config)
 
 
 @app.route("/api/domains", methods=["POST"])
@@ -59,6 +72,18 @@ def api_check_domain(domain_id: int):
 @app.route("/api/check-all", methods=["POST"])
 def api_check_all():
     check_all_domains()
+    return jsonify({"success": True})
+
+
+@app.route("/api/dingtalk", methods=["POST"])
+def api_save_dingtalk():
+    data = request.get_json(force=True, silent=True) or {}
+    access_token = (data.get("access_token") or "").strip()
+    secret = (data.get("secret") or "").strip()
+    if not access_token or not secret:
+        return jsonify({"success": False, "error": "access_token 与 secret 均不能为空"}), 400
+
+    upsert_dingtalk_config(access_token, secret)
     return jsonify({"success": True})
 
 

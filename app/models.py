@@ -41,6 +41,14 @@ def init_db():
                 FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS dingtalk_config (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                access_token TEXT NOT NULL,
+                secret TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_checks_domain_time
                 ON checks(domain_id, check_time DESC);
             """
@@ -129,4 +137,28 @@ def save_check_result(domain_id: int, result: dict):
                 result.get("status"),
                 result.get("error_msg"),
             ),
+        )
+
+
+def get_dingtalk_config():
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT access_token, secret, created_at, updated_at FROM dingtalk_config WHERE id = 1"
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def upsert_dingtalk_config(access_token: str, secret: str):
+    now = datetime.utcnow().isoformat(sep=" ", timespec="seconds")
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO dingtalk_config (id, access_token, secret, created_at, updated_at)
+            VALUES (1, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                access_token = excluded.access_token,
+                secret = excluded.secret,
+                updated_at = excluded.updated_at
+            """,
+            (access_token, secret, now, now),
         )
