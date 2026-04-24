@@ -88,7 +88,7 @@
                   {% set row_class = 'table-secondary' %}
                 {% elif domain.days_left is not none and domain.days_left < 0 %}
                   {% set row_class = 'table-danger' %}
-                {% elif domain.days_left is not none and domain.days_left < 7 %}
+                {% elif domain.days_left is not none and domain.days_left <= 7 %}
                   {% set row_class = 'table-warning' %}
                 {% endif %}
                 <tr class="{{ row_class }}">
