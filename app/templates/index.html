@@ -50,6 +50,24 @@
 
       <div class="card">
         <div class="card-body">
+          <form class="row g-2 mb-3" method="get" action="{{ url_for('index') }}">
+            <div class="col-md-8">
+              <input
+                type="text"
+                class="form-control"
+                name="q"
+                value="{{ keyword or '' }}"
+                placeholder="按域名关键字查询，例如 example"
+              />
+            </div>
+            <div class="col-md-2 d-grid">
+              <button type="submit" class="btn btn-outline-primary">查询</button>
+            </div>
+            <div class="col-md-2 d-grid">
+              <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">重置</a>
+            </div>
+          </form>
+
           <div class="table-responsive">
             <table class="table table-hover align-middle">
               <thead>
@@ -74,7 +92,9 @@
                   {% set row_class = 'table-warning' %}
                 {% endif %}
                 <tr class="{{ row_class }}">
-                  <td class="fw-semibold">{{ domain.domain }}</td>
+                  <td class="fw-semibold domain-cell">
+                    <div class="domain-text" title="{{ domain.domain }}">{{ domain.domain }}</div>
+                  </td>
                   <td>
                     {% if domain.days_left is not none %}
                       {{ domain.days_left }}
@@ -83,7 +103,9 @@
                     {% endif %}
                   </td>
                   <td>{{ domain.expires_on or '-' }}</td>
-                  <td>{{ domain.issuer or '-' }}</td>
+                  <td class="issuer-cell">
+                    <div class="issuer-text" title="{{ domain.issuer or '-' }}">{{ domain.issuer or '-' }}</div>
+                  </td>
                   <td>{{ domain.check_time or '从未检查' }}</td>
                   <td>
                     {% if domain.status %}
@@ -113,12 +135,64 @@
                 {% endfor %}
                 {% if domains|length == 0 %}
                 <tr>
-                  <td colspan="7" class="text-center text-secondary py-4">暂无域名，请先添加。</td>
+                  <td colspan="7" class="text-center text-secondary py-4">
+                    {% if keyword %}
+                      没有匹配“{{ keyword }}”的域名。
+                    {% else %}
+                      暂无域名，请先添加。
+                    {% endif %}
+                  </td>
                 </tr>
                 {% endif %}
               </tbody>
             </table>
           </div>
+          {% if total_domains > 0 %}
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 pt-2">
+            <div class="text-secondary small">
+              共 {{ total_domains }} 条，当前第 {{ page }} / {{ total_pages }} 页
+            </div>
+            <nav aria-label="域名分页">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if not has_prev %}disabled{% endif %}">
+                  <a class="page-link" href="{{ url_for('index', page=prev_page, q=keyword) }}">上一页</a>
+                </li>
+
+                {% if show_first %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('index', page=1, q=keyword) }}">1</a>
+                </li>
+                {% if 2 not in page_numbers %}
+                <li class="page-item disabled">
+                  <span class="page-link">…</span>
+                </li>
+                {% endif %}
+                {% endif %}
+
+                {% for page_number in page_numbers %}
+                <li class="page-item {% if page_number == page %}active{% endif %}">
+                  <a class="page-link" href="{{ url_for('index', page=page_number, q=keyword) }}">{{ page_number }}</a>
+                </li>
+                {% endfor %}
+
+                {% if show_last %}
+                {% if total_pages - 1 not in page_numbers %}
+                <li class="page-item disabled">
+                  <span class="page-link">…</span>
+                </li>
+                {% endif %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('index', page=total_pages, q=keyword) }}">{{ total_pages }}</a>
+                </li>
+                {% endif %}
+
+                <li class="page-item {% if not has_next %}disabled{% endif %}">
+                  <a class="page-link" href="{{ url_for('index', page=next_page, q=keyword) }}">下一页</a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+          {% endif %}
         </div>
       </div>
     </main>

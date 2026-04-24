@@ -106,31 +106,58 @@ def get_all_domains():
         return [dict(r) for r in rows]
 
 
-def get_domains_with_latest_check():
+def count_domains(keyword=None):
+    keyword = (keyword or "").strip()
+    where_clause = ""
+    params = []
+    if keyword:
+        where_clause = " WHERE domain LIKE ?"
+        params.append(f"%{keyword}%")
+
     with _connect() as conn:
-        rows = conn.execute(
-            """
-            SELECT
-                d.id,
-                d.domain,
-                d.created_at,
-                c.check_time,
-                c.expires_on,
-                c.issuer,
-                c.days_left,
-                c.status,
-                c.error_msg
-            FROM domains d
-            LEFT JOIN checks c ON c.id = (
-                SELECT id
-                FROM checks
-                WHERE domain_id = d.id
-                ORDER BY check_time DESC
-                LIMIT 1
-            )
-            ORDER BY d.domain
-            """
-        ).fetchall()
+        row = conn.execute(f"SELECT COUNT(1) AS total FROM domains{where_clause}", params).fetchone()
+        if not row:
+            return 0
+        return int(row["total"])
+
+
+def get_domains_with_latest_check(limit=None, offset=0, keyword=None):
+    keyword = (keyword or "").strip()
+    where_clause = ""
+    params = []
+    if keyword:
+        where_clause = " WHERE d.domain LIKE ?"
+        params.append(f"%{keyword}%")
+
+    sql = """
+        SELECT
+            d.id,
+            d.domain,
+            d.created_at,
+            c.check_time,
+            c.expires_on,
+            c.issuer,
+            c.days_left,
+            c.status,
+            c.error_msg
+        FROM domains d
+        LEFT JOIN checks c ON c.id = (
+            SELECT id
+            FROM checks
+            WHERE domain_id = d.id
+            ORDER BY check_time DESC
+            LIMIT 1
+        )
+        """
+    sql += where_clause
+    sql += " ORDER BY d.domain"
+
+    if limit is not None:
+        sql += " LIMIT ? OFFSET ?"
+        params.extend([int(limit), max(0, int(offset))])
+
+    with _connect() as conn:
+        rows = conn.execute(sql, params).fetchall()
         return [dict(r) for r in rows]
 
 

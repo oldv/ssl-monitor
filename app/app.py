@@ -1,10 +1,16 @@
 import os
+import sys
+
+if __package__ is None or __package__ == "":
+    # Support running as `python app/app.py` from project root.
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, jsonify, render_template, request
 
 from app.cert_checker import check_certificate
 from app.models import (
     add_domain,
+    count_domains,
     delete_domain,
     DEFAULT_ALERT_DAYS,
     get_dingtalk_config,
@@ -15,6 +21,8 @@ from app.models import (
 from app.scheduler import check_domain, check_all_domains, get_next_run_time, start_scheduler
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+DOMAINS_PAGE_SIZE = 20
+DOMAINS_MAX_PAGE_SIZE = 200
 
 
 def _should_start_scheduler():
@@ -24,11 +32,67 @@ def _should_start_scheduler():
     return not app.debug
 
 
+def _parse_positive_int(raw_value, default=1):
+    try:
+        value = int(raw_value)
+        if value < 1:
+            return default
+        return value
+    except Exception:
+        return default
+
+
+def _list_domains_page(keyword: str, page: int, page_size: int):
+    total_domains = count_domains(keyword=keyword)
+    total_pages = max(1, (total_domains + page_size - 1) // page_size)
+    if page > total_pages:
+        page = total_pages
+
+    offset = (page - 1) * page_size
+    domains = get_domains_with_latest_check(limit=page_size, offset=offset, keyword=keyword)
+    return domains, {
+        "page": page,
+        "page_size": page_size,
+        "total_domains": total_domains,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_page": page - 1,
+        "next_page": page + 1,
+    }
+
+
 @app.route("/")
 def index():
-    domains = get_domains_with_latest_check()
+    keyword = (request.args.get("q") or "").strip()
+    page = _parse_positive_int(request.args.get("page"), default=1)
+    page_size = DOMAINS_PAGE_SIZE
+    domains, paging = _list_domains_page(keyword, page, page_size)
+    page = paging["page"]
+    total_domains = paging["total_domains"]
+    total_pages = paging["total_pages"]
+    page_window = 2
+    start_page = max(1, page - page_window)
+    end_page = min(total_pages, page + page_window)
+    page_numbers = list(range(start_page, end_page + 1))
+
     next_run = get_next_run_time()
-    return render_template("index.html", domains=domains, next_run=next_run)
+    return render_template(
+        "index.html",
+        domains=domains,
+        next_run=next_run,
+        keyword=keyword,
+        page=page,
+        total_domains=total_domains,
+        total_pages=total_pages,
+        has_prev=paging["has_prev"],
+        has_next=paging["has_next"],
+        prev_page=paging["prev_page"],
+        next_page=paging["next_page"],
+        page_numbers=page_numbers,
+        show_first=1 not in page_numbers,
+        show_last=total_pages not in page_numbers,
+    )
 
 
 @app.route("/dingtalk")
@@ -50,6 +114,30 @@ def api_add_domain():
     except Exception as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     return jsonify({"success": True, "id": domain_id})
+
+
+@app.route("/api/domains", methods=["GET"])
+def api_list_domains():
+    keyword = (request.args.get("q") or "").strip()
+    page = _parse_positive_int(request.args.get("page"), default=1)
+    page_size = _parse_positive_int(request.args.get("page_size"), default=DOMAINS_PAGE_SIZE)
+    page_size = min(page_size, DOMAINS_MAX_PAGE_SIZE)
+    domains, paging = _list_domains_page(keyword, page, page_size)
+    return jsonify(
+        {
+            "success": True,
+            "items": domains,
+            "pagination": {
+                "page": paging["page"],
+                "page_size": page_size,
+                "total": paging["total_domains"],
+                "total_pages": paging["total_pages"],
+                "has_prev": paging["has_prev"],
+                "has_next": paging["has_next"],
+            },
+            "query": {"q": keyword},
+        }
+    )
 
 
 @app.route("/api/domains/<int:domain_id>", methods=["DELETE"])

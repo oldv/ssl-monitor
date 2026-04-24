@@ -15,3 +15,31 @@ main.container {
 .table th {
   vertical-align: middle;
 }
+
+.domain-cell {
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
+}
+
+.domain-text {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issuer-cell {
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
+}
+
+.issuer-text {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
